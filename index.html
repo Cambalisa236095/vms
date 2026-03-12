@@ -205,6 +205,10 @@ tbody td{padding:12px 14px;vertical-align:middle;}
 
 
 
+/* ── OFFLINE BANNER ── */
+#offline-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#d29922;color:#000;text-align:center;padding:8px 16px;font-size:13px;font-weight:600;}
+body.offline #shell{margin-top:38px;}
+
 /* ── RESPONSIVE ── */
 @media(max-width:1024px){.stats-grid{grid-template-columns:repeat(2,1fr);}.dash-grid{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr 1fr;}}
 @media(max-width:768px){
@@ -214,6 +218,7 @@ tbody td{padding:12px 14px;vertical-align:middle;}
   #sidebar-overlay.open{display:block;}
   #topbar-menu-btn{display:flex;}
   #bottom-nav{display:block;}
+  #topbar-add-btn{display:none !important;}
   .page{padding:14px 14px calc(8px + var(--safe-bot));}
   .stats-grid{grid-template-columns:1fr 1fr;gap:10px;}
   .stat-card{padding:14px;}
@@ -263,7 +268,7 @@ tbody td{padding:12px 14px;vertical-align:middle;}
       <div class="topbar-right">
         <div class="topbar-time" id="topbar-time"></div>
         <button class="topbar-refresh" onclick="refreshCurrent()">↻ Refresh</button>
-        <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ Add New</button>
+        <button class="btn btn-primary btn-sm" id="topbar-add-btn" onclick="openAddModal()">＋ Add New</button>
       </div>
     </div>
 
@@ -304,18 +309,23 @@ tbody td{padding:12px 14px;vertical-align:middle;}
   </div>
 </div>
 
-<button class="fab" onclick="openAddModal()">＋</button>
+
 
 <!-- MODALS -->
 <div class="modal-overlay" id="modal-vehicle" onclick="closeOverlay(event,'modal-vehicle')"><div class="modal"><div class="modal-header"><div class="modal-title" id="vmod-title">Vehicle</div><button class="modal-close" onclick="closeModal('modal-vehicle')">✕</button></div><div class="modal-body" id="vmod-body"></div></div></div>
 <div class="modal-overlay" id="modal-history" onclick="closeOverlay(event,'modal-history')"><div class="modal"><div class="modal-header"><div class="modal-title">Maintenance Record</div><button class="modal-close" onclick="closeModal('modal-history')">✕</button></div><div class="modal-body" id="hmod-body"></div></div></div>
 <div class="modal-overlay" id="modal-form"    onclick="closeOverlay(event,'modal-form')"><div class="modal"><div class="modal-header"><div class="modal-title" id="form-title">Add Record</div><button class="modal-close" onclick="closeModal('modal-form')">✕</button></div><div class="modal-body" id="form-body"></div></div></div>
 <div class="toast" id="toast"></div>
+<!-- OFFLINE BANNER -->
+<div id="offline-banner">📵 You are offline — view only. Changes cannot be saved until you reconnect.</div>
+
+<!-- FAB (mobile only) -->
+<button class="fab" id="fab-btn" onclick="openAddModal()">＋</button>
 
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 // ══════════════════════════════════════════════════
 //  🔧 FILL IN YOUR FIREBASE CREDENTIALS HERE
@@ -333,7 +343,33 @@ const firebaseConfig = {
 (function initApp() {
   try {
     const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
+    // ── Enable offline persistence (cache data on device) ──
+    const db = initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
+
+    // ── Online / Offline detection ──
+    let isOnline = navigator.onLine;
+    function setOnlineState(online) {
+      isOnline = online;
+      const banner = document.getElementById('offline-banner');
+      const fab    = document.getElementById('fab-btn');
+      const addBtn = document.getElementById('topbar-add-btn');
+      if (online) {
+        banner.style.display = 'none';
+        document.body.style.marginTop = '';
+        if (fab)    fab.style.display = '';
+        if (addBtn) addBtn.style.display = '';
+      } else {
+        banner.style.display = 'block';
+        document.body.style.marginTop = '38px';
+        if (fab)    fab.style.display = 'none';
+        if (addBtn) addBtn.style.display = 'none';
+      }
+    }
+    window.addEventListener('online',  () => setOnlineState(true));
+    window.addEventListener('offline', () => setOnlineState(false));
+    setOnlineState(navigator.onLine);
 
     // ══ STATE ══
     const S = {
@@ -596,6 +632,7 @@ const firebaseConfig = {
     function iForm(i={}){return `<div class="form-grid" id="iform">${fi('vehicle_name','Vehicle Name',i)}${fi('plate_number','Plate Number',i)}${fi('department','Department',i)}${fi('mv_file_no','MV File No',i)}${fi('insurance_month','Insurance Month',i)}${fi('insurance_date','Insurance Date Range',i)}${fi('registration_month','Reg Month',i)}${fi('registration_date','Reg Date',i,'date')}${fta('remarks','Remarks',i)}<div class="form-actions form-full"><button class="btn btn-default" onclick="closeModal('modal-form')">Cancel</button><button class="btn btn-primary" onclick="saveRecord('insurance')">💾 Save</button></div></div>`;}
 
     async function saveRecord(col){
+      if(!isOnline){ toast('You are offline. Cannot save changes.','error'); return; }
       const containerId = col==='vehicles'?'vform':col==='history'?'hform':'iform';
       const data={};
       document.querySelectorAll(`#${containerId} [name]`).forEach(el=>data[el.name]=el.value);
@@ -623,6 +660,7 @@ const firebaseConfig = {
     window.saveRecord=saveRecord;
 
     async function confirmDelete(col, id, modalId){
+      if(!isOnline){ toast('You are offline. Cannot delete records.','error'); return; }
       if(!confirm('Delete this record? This cannot be undone.')) return;
       try {
         await deleteRec(col, id);
