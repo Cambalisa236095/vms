@@ -335,9 +335,6 @@ const firebaseConfig = {
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
-    document.getElementById('config-screen').style.display = 'none';
-    document.getElementById('shell').style.display = 'flex';
-
     // ══ STATE ══
     const S = {
       page:'dashboard',
