@@ -402,6 +402,7 @@ tbody td{padding:12px 14px;vertical-align:middle;}
       <!-- INSURANCE -->
       <div class="page" id="page-insurance">
         <div class="page-header"><div class="page-title">📋 Insurance & Registration <span style="font-size:16px;color:var(--text2);font-family:var(--font-ui);font-weight:400;" id="ins-count"></span></div><div class="page-sub">GSIS insurance and LTO registration tracking</div></div>
+        <div class="toolbar"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" id="ins-search" placeholder="Search vehicle, plate, department…" oninput="filterInsurance()"></div></div>
         <div class="pills" id="ins-pills"></div>
         <div id="ins-table-area"></div><div class="mobile-cards" id="ins-cards"></div>
       </div>
@@ -482,7 +483,7 @@ const firebaseConfig = {
       vehicles:[], depts:[],
       vFilter:{search:'',dept:'All'},
       history:[], hSearch:'',
-      insurance:[], insFilter:'All',
+      insurance:[], insFilter:'All', insSearch:'',
       editId:null, editCol:null,
     };
     const MONTHS=['All','JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
@@ -767,16 +768,17 @@ const firebaseConfig = {
       renderVehicleTable(list); renderVehicleCards(list);
     }
     window.filterVehicles=filterVehicles;
+    function gsisClass(val){const v=(val||'').toLowerCase();if(v.includes('insured')&&!v.includes('not'))return 'badge-green';if(v.includes('pending'))return 'badge-amber';return v?'badge-red':'badge-gray';}
     function vIcon(v){const t=(v.denomination||'').toLowerCase();if(t.includes('motorcycle'))return '🏍️';if(t.includes('truck')||t.includes('dump'))return '🚛';if(t.includes('van')||t.includes('multi'))return '🚐';return '🚗';}
     function renderVehicleTable(list){
       const el=document.getElementById('v-table-area');
       if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">🚗</div>No vehicles found</div>';return;}
       el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>#</th><th>Plate No</th><th>Vehicle Name</th><th class="hide-mobile">Department</th><th class="hide-mobile">Make/Series</th><th class="hide-mobile">Year</th><th class="hide-mobile">Fuel</th><th>Status</th></tr></thead><tbody>
-        ${list.map((v,i)=>`<tr onclick="showVehicleModal('${v.id}')"><td class="td-muted">${i+1}</td><td><span class="badge badge-amber td-mono">${v.plate_no||'N/A'}</span></td><td class="td-name">${vIcon(v)} ${v.vehicle_name||'-'}</td><td class="hide-mobile"><span class="badge badge-blue">${v.department||'-'}</span></td><td class="hide-mobile td-muted">${v.make||''} ${v.series||''}</td><td class="hide-mobile td-muted">${v.year_model||'-'}</td><td class="hide-mobile">${v.fuel?`<span class="badge badge-gray">${v.fuel}</span>`:'-'}</td><td><span class="badge ${v.gsis_remarks==='Insured'?'badge-green':'badge-red'}">${v.gsis_remarks||'Unknown'}</span></td></tr>`).join('')}
+        ${list.map((v,i)=>`<tr onclick="showVehicleModal('${v.id}')"><td class="td-muted">${i+1}</td><td><span class="badge badge-amber td-mono">${v.plate_no||'N/A'}</span></td><td class="td-name">${vIcon(v)} ${v.vehicle_name||'-'}</td><td class="hide-mobile"><span class="badge badge-blue">${v.department||'-'}</span></td><td class="hide-mobile td-muted">${v.make||''} ${v.series||''}</td><td class="hide-mobile td-muted">${v.year_model||'-'}</td><td class="hide-mobile">${v.fuel?`<span class="badge badge-gray">${v.fuel}</span>`:'-'}</td><td><span class="badge ${gsisClass(v.gsis_remarks)}">${v.gsis_remarks||'Unknown'}</span></td></tr>`).join('')}
       </tbody></table></div>`;
     }
     function renderVehicleCards(list){
-      document.getElementById('v-cards').innerHTML=list.map((v,i)=>`<div class="m-card" style="animation-delay:${Math.min(i,.15)*0.03}s" onclick="showVehicleModal('${v.id}')"><div class="flex-between gap-8"><div class="m-card-title">${vIcon(v)} ${v.vehicle_name||'Unknown'}</div><span class="badge badge-amber">${v.plate_no||'N/A'}</span></div><div class="m-card-row" style="margin-top:6px;">${v.department?`<span class="badge badge-blue">${v.department}</span>`:''}<span>${v.make||''} ${v.year_model||''}</span><span class="badge ${v.gsis_remarks==='Insured'?'badge-green':'badge-red'}">${v.gsis_remarks||'Unknown'}</span></div></div>`).join('');
+      document.getElementById('v-cards').innerHTML=list.map((v,i)=>`<div class="m-card" style="animation-delay:${Math.min(i,.15)*0.03}s" onclick="showVehicleModal('${v.id}')"><div class="flex-between gap-8"><div class="m-card-title">${vIcon(v)} ${v.vehicle_name||'Unknown'}</div><span class="badge badge-amber">${v.plate_no||'N/A'}</span></div><div class="m-card-row" style="margin-top:6px;">${v.department?`<span class="badge badge-blue">${v.department}</span>`:''}<span>${v.make||''} ${v.year_model||''}</span><span class="badge ${gsisClass(v.gsis_remarks)}">${v.gsis_remarks||'Unknown'}</span></div></div>`).join('');
     }
 
     async function showVehicleModal(id) {
@@ -787,7 +789,7 @@ const firebaseConfig = {
       const hist=S.history.filter(h=>h.engine_no===v.engine_no);
       const totalSpent=hist.reduce((s,h)=>s+parseAmt(h.amount||'0'),0);
       document.getElementById('vmod-body').innerHTML=`
-        <div class="v-hero"><div class="v-hero-icon">${vIcon(v)}</div><div class="v-hero-name">${v.vehicle_name||'-'}</div><div class="v-hero-badges"><span class="badge badge-amber">${v.plate_no||'No Plate'}</span>${v.department?`<span class="badge badge-blue">${v.department}</span>`:''}<span class="badge ${v.gsis_remarks==='Insured'?'badge-green':'badge-red'}">${v.gsis_remarks||'Unknown'}</span></div></div>
+        <div class="v-hero"><div class="v-hero-icon">${vIcon(v)}</div><div class="v-hero-name">${v.vehicle_name||'-'}</div><div class="v-hero-badges"><span class="badge badge-amber">${v.plate_no||'No Plate'}</span>${v.department?`<span class="badge badge-blue">${v.department}</span>`:''}<span class="badge ${gsisClass(v.gsis_remarks)}">${v.gsis_remarks||'Unknown'}</span></div></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
           <div class="stat-card" style="text-align:center;padding:14px;"><div class="stat-num">${hist.length}</div><div class="stat-label">Maintenance Logs</div></div>
           <div class="stat-card" style="text-align:center;padding:14px;"><div class="stat-num" style="font-size:18px">₱${totalSpent.toLocaleString('en-PH',{minimumFractionDigits:2})}</div><div class="stat-label">Total Cost</div></div>
@@ -859,7 +861,19 @@ const firebaseConfig = {
     }
     function renderInsPills(){document.getElementById('ins-pills').innerHTML=MONTHS.map(m=>`<div class="pill ${m===S.insFilter?'active':''}" onclick="setInsFilter('${m}')">${m==='All'?'All':m.slice(0,3)}</div>`).join('');}
     window.setInsFilter=m=>{S.insFilter=m;renderInsPills();renderInsTable();renderInsCards();};
-    function filteredIns(){if(S.insFilter==='All')return S.insurance;return S.insurance.filter(i=>(i.insurance_month||'').toUpperCase()===S.insFilter||(i.registration_month||'').toUpperCase()===S.insFilter);}
+    function filteredIns(){
+      const q=S.insSearch.toLowerCase();
+      let list=S.insurance;
+      if(S.insFilter!=='All') list=list.filter(i=>(i.insurance_month||'').toUpperCase()===S.insFilter||(i.registration_month||'').toUpperCase()===S.insFilter);
+      if(q) list=list.filter(i=>[i.vehicle_name,i.plate_number,i.department,i.mv_file_no,i.insurance_month,i.remarks].join(' ').toLowerCase().includes(q));
+      return list;
+    }
+    function filterInsurance(){
+      S.insSearch=(document.getElementById('ins-search').value||'').toLowerCase();
+      document.getElementById('ins-count').textContent=`(${filteredIns().length})`;
+      renderInsTable(); renderInsCards();
+    }
+    window.filterInsurance=filterInsurance;
     function renderInsTable(){
       const list=filteredIns(); const el=document.getElementById('ins-table-area');
       if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>No records found</div>';return;}
@@ -931,7 +945,7 @@ const firebaseConfig = {
     function fs(name,label,opts,v={}){return `<div class="form-group"><label class="form-label">${label}</label><select class="form-select" name="${name}"><option value="">—</option>${opts.map(o=>`<option ${(v[name]||'')==o?'selected':''}>${o}</option>`).join('')}</select></div>`;}
     function fta(name,label,v={}){return `<div class="form-group form-full"><label class="form-label">${label}</label><textarea class="form-textarea" name="${name}">${eh(v[name]||'')}</textarea></div>`;}
 
-    function vForm(v={}){return `<div class="form-grid" id="vform">${fi('plate_no','Plate No',v)}${fi('vehicle_name','Vehicle Name',v)}${fi('department','Department',v)}${fi('engine_no','Engine No',v)}${fi('chassis_no','Chassis No',v)}${fi('mv_file_no','MV File No',v)}${fi('conduction_no','Conduction No',v)}${fi('year_model','Year Model',v)}${fs('fuel','Fuel',['DIESEL','GAS','ELECTRIC','HYBRID'],v)}${fi('make','Make/Brand',v)}${fi('series','Series',v)}${fs('denomination','Denomination',['UTILITY VEHICLE','TRUCK','MOTORCYCLE WITH SIDE CAR','MOTORCYCLE'],v)}${fi('body_type','Body Type',v)}${fi('gross_wt','Gross Weight kg',v)}${fi('net_wt','Net Weight kg',v)}${fs('gsis_insurance_month','GSIS Month',['January','February','March','April','May','June','July','August','September','October','November','December'],v)}${fs('gsis_remarks','GSIS Status',['Insured','Not Insured','Pending'],v)}${fi('or_no','O.R No',v)}${fi('or_date','O.R Date',v)}${fi('or_amt','O.R Amount',v)}${fi('acquisition_date','Acquisition Date',v)}${fi('acquisition_cost','Acquisition Cost',v)}${fi('owner_name','Owner Name',v)}${fi('contact','Contact',v)}${fta('address','Address',v)}<div class="form-actions form-full"><button class="btn btn-default" onclick="closeModal('modal-form')">Cancel</button><button class="btn btn-primary" onclick="saveRecord('vehicles')">💾 Save Vehicle</button></div></div>`;}
+    function vForm(v={}){return `<div class="form-grid" id="vform">${fi('plate_no','Plate No',v)}${fi('vehicle_name','Vehicle Name',v)}${fi('department','Department',v)}${fi('engine_no','Engine No',v)}${fi('chassis_no','Chassis No',v)}${fi('mv_file_no','MV File No',v)}${fi('conduction_no','Conduction No',v)}${fi('year_model','Year Model',v)}${fs('fuel','Fuel',['DIESEL','GAS','ELECTRIC','HYBRID'],v)}${fi('make','Make/Brand',v)}${fi('series','Series',v)}${fs('denomination','Denomination',['UTILITY VEHICLE','TRUCK','MOTORCYCLE WITH SIDE CAR','MOTORCYCLE'],v)}${fi('body_type','Body Type',v)}${fi('gross_wt','Gross Weight kg',v)}${fi('net_wt','Net Weight kg',v)}${fs('gsis_insurance_month','GSIS Month',['January','February','March','April','May','June','July','August','September','October','November','December'],v)}${fi('gsis_remarks','GSIS Status',v)}${fi('or_no','O.R No',v)}${fi('or_date','O.R Date',v)}${fi('or_amt','O.R Amount',v)}${fi('acquisition_date','Acquisition Date',v)}${fi('acquisition_cost','Acquisition Cost',v)}${fi('owner_name','Owner Name',v)}${fi('contact','Contact',v)}${fta('address','Address',v)}<div class="form-actions form-full"><button class="btn btn-default" onclick="closeModal('modal-form')">Cancel</button><button class="btn btn-primary" onclick="saveRecord('vehicles')">💾 Save Vehicle</button></div></div>`;}
     function hForm(h={}){return `<div id="hform"><div class="form-grid">${fi('engine_no','Engine No',h)}${fi('maintenance_date','Date',h,'date')}</div>${fta('maintenance_conducted','Maintenance Conducted',h)}${fta('parts','Parts (Name|Qty|Unit|Price; per item)',h)}<div class="form-group" style="margin-top:14px"><label class="form-label">Total Amount</label><input class="form-input" type="number" step="0.01" name="amount" value="${h.amount||''}"></div><div class="form-actions"><button class="btn btn-default" onclick="closeModal('modal-form')">Cancel</button><button class="btn btn-primary" onclick="saveRecord('history')">💾 Save</button></div></div>`;}
     function iForm(i={}) {
       // Pre-populate the two date pickers: prefer new split fields, fall back to parsing legacy insurance_date
