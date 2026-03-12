@@ -211,12 +211,29 @@ tbody td{padding:12px 14px;vertical-align:middle;}
 .ins-alert-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ins-alert-meta{font-size:11px;opacity:.8;margin-top:1px;}
 .ins-alert-days{font-family:var(--font-mono);font-size:12px;white-space:nowrap;flex-shrink:0;}
-.dash-date{font-family:var(--font-mono);font-size:12px;color:var(--text2);margin-left:auto;}
+.ins-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.ins-card-date{font-size:11px;color:var(--text2);font-family:var(--font-mono);margin-top:2px;}
 .alert-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .alert-chip{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;}
 .alert-chip-red{background:rgba(248,81,73,.12);color:var(--red);border:1px solid rgba(248,81,73,.2);}
 .alert-chip-yellow{background:rgba(210,153,34,.12);color:#e3b341;border:1px solid rgba(210,153,34,.2);}
 .alert-chip-green{background:rgba(63,185,80,.12);color:var(--green);border:1px solid rgba(63,185,80,.2);}
+.ins-section-label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;}
+/* Mobile overrides for insurance alerts */
+@media(max-width:768px){
+  .ins-alert-bar{padding:9px 12px;gap:8px;font-size:12.5px;}
+  .ins-alert-days{font-size:11px;}
+  .ins-alert-meta{font-size:10.5px;}
+  .alert-chip{font-size:11px;padding:5px 10px;}
+  .ins-card-date{display:block;}
+}
+@media(max-width:390px){
+  .ins-alert-bar{padding:8px 10px;gap:6px;font-size:12px;}
+  .ins-alert-icon{font-size:14px;}
+  .ins-alert-days{font-size:10.5px;}
+  .alert-chip{font-size:10.5px;padding:4px 8px;gap:3px;}
+  .alert-summary{gap:6px;}
+}
 
 /* ── OFFLINE BANNER ── */
 #offline-banner{
@@ -406,6 +423,7 @@ tbody td{padding:12px 14px;vertical-align:middle;}
 <!-- MODALS -->
 <div class="modal-overlay" id="modal-vehicle" onclick="closeOverlay(event,'modal-vehicle')"><div class="modal"><div class="modal-header"><div class="modal-title" id="vmod-title">Vehicle</div><button class="modal-close" onclick="closeModal('modal-vehicle')">✕</button></div><div class="modal-body" id="vmod-body"></div></div></div>
 <div class="modal-overlay" id="modal-history" onclick="closeOverlay(event,'modal-history')"><div class="modal"><div class="modal-header"><div class="modal-title">Maintenance Record</div><button class="modal-close" onclick="closeModal('modal-history')">✕</button></div><div class="modal-body" id="hmod-body"></div></div></div>
+<div class="modal-overlay" id="modal-insurance" onclick="closeOverlay(event,'modal-insurance')"><div class="modal"><div class="modal-header"><div class="modal-title" id="imod-title">Insurance Record</div><button class="modal-close" onclick="closeModal('modal-insurance')">✕</button></div><div class="modal-body" id="imod-body"></div></div></div>
 <div class="modal-overlay" id="modal-form"    onclick="closeOverlay(event,'modal-form')"><div class="modal"><div class="modal-header"><div class="modal-title" id="form-title">Add Record</div><button class="modal-close" onclick="closeModal('modal-form')">✕</button></div><div class="modal-body" id="form-body"></div></div></div>
 <div class="toast" id="toast"></div>
 <!-- FAB (mobile only) -->
@@ -617,28 +635,28 @@ const firebaseConfig = {
           <!-- ── INSURANCE STATUS CARD ── -->
           <div class="card dash-full">
             <div class="card-header">
-              <div class="card-title">🛡 Insurance & Registration Status</div>
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <span style="font-size:11px;color:var(--text2);font-family:var(--font-mono);">📅 ${todayStr}</span>
-                <button class="btn btn-default btn-sm" onclick="switchPage('insurance')">View All →</button>
+              <div>
+                <div class="card-title">🛡 Insurance & Registration Status</div>
+                <div class="ins-card-date">📅 ${todayStr}</div>
               </div>
+              <button class="btn btn-default btn-sm" onclick="switchPage('insurance')" style="flex-shrink:0;">View All →</button>
             </div>
             <div class="card-body">
               <!-- Summary chips -->
               <div class="alert-summary">
                 <div class="alert-chip alert-chip-red">🔴 ${expired.length} Expired</div>
                 <div class="alert-chip alert-chip-yellow">🟡 ${warning.length} Due within 2 weeks</div>
-                <div class="alert-chip alert-chip-green">🟢 ${upcoming.length > 0 ? ins.length - expired.length - warning.length : 0} Active</div>
+                <div class="alert-chip alert-chip-green">🟢 ${ins.length - expired.length - warning.length} Active</div>
               </div>
 
               ${alertList.length ? `
-                <div style="font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">⚠ Requires Attention</div>
+                <div class="ins-section-label">⚠ Requires Attention</div>
                 ${alertList.map(insAlertRow).join('')}
                 <div style="height:14px;"></div>
-              ` : `<div style="padding:12px 0 6px;font-size:13px;color:var(--green);">✅ No expired or near-expiry registrations.</div>`}
+              ` : `<div style="padding:8px 0 10px;font-size:13px;color:var(--green);">✅ No expired or near-expiry registrations.</div>`}
 
               ${upcoming.length ? `
-                <div style="font-size:11px;color:var(--text2);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;margin-top:4px;">📋 Upcoming Renewals</div>
+                <div class="ins-section-label" style="margin-top:4px;">📋 Upcoming Renewals</div>
                 ${upcoming.map(insUpcomingRow).join('')}
               ` : ''}
             </div>
@@ -763,13 +781,48 @@ const firebaseConfig = {
     function renderInsTable(){
       const list=filteredIns(); const el=document.getElementById('ins-table-area');
       if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>No records found</div>';return;}
-      el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>#</th><th>Vehicle</th><th class="hide-mobile">Dept</th><th>Plate</th><th class="hide-mobile">Insurance Month</th><th class="hide-mobile">Insurance Date</th><th>Reg Month</th><th>Reg Date</th></tr></thead><tbody>
-        ${list.map(i=>`<tr><td class="td-muted">${i.item_no||'-'}</td><td class="td-name">${i.vehicle_name||'-'}</td><td class="hide-mobile">${i.department?`<span class="badge badge-blue">${i.department}</span>`:'-'}</td><td class="td-mono">${i.plate_number||'-'}</td><td class="hide-mobile">${i.insurance_month||'-'}</td><td class="hide-mobile td-muted" style="font-size:12px;max-width:180px">${i.insurance_date||'-'}</td><td>${i.registration_month||'-'}</td><td class="td-muted">${fmtDate(i.registration_date)}</td></tr>`).join('')}
+      const s=i=>insStatus(i.registration_date);
+      el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>#</th><th>Vehicle</th><th class="hide-mobile">Dept</th><th>Plate</th><th class="hide-mobile">Insurance Month</th><th class="hide-mobile">Reg Date</th><th>Status</th></tr></thead><tbody>
+        ${list.map(i=>{const st=s(i);const badge=st.type==='expired'?`<span class="badge badge-red">Expired</span>`:st.type==='warning'?`<span class="badge badge-amber">Due Soon</span>`:`<span class="badge badge-green">Active</span>`;return `<tr onclick="showInsuranceModal('${i.id}')"><td class="td-muted">${i.item_no||'-'}</td><td class="td-name">${i.vehicle_name||'-'}</td><td class="hide-mobile">${i.department?`<span class="badge badge-blue">${i.department}</span>`:'-'}</td><td class="td-mono">${i.plate_number||'-'}</td><td class="hide-mobile">${i.insurance_month||'-'}</td><td class="hide-mobile td-muted">${fmtDate(i.registration_date)}</td><td>${badge}</td></tr>`;}).join('')}
       </tbody></table></div>`;
     }
     function renderInsCards(){
-      document.getElementById('ins-cards').innerHTML=filteredIns().map((i,idx)=>`<div class="m-card" style="animation-delay:${Math.min(idx,10)*0.02}s"><div class="flex-between gap-8"><div class="m-card-title">${i.vehicle_name||'-'}</div><span class="badge badge-amber">${i.plate_number||'-'}</span></div><div class="m-card-row" style="margin-top:5px;">${i.department?`<span class="badge badge-blue">${i.department}</span>`:''}<span>🛡 ${i.insurance_month||''}</span><span>📅 ${i.registration_month||''} ${fmtDate(i.registration_date)}</span></div>${i.insurance_date?`<div style="font-size:11px;color:var(--text2);margin-top:4px">${i.insurance_date}</div>`:''}</div>`).join('');
+      const s=i=>insStatus(i.registration_date);
+      document.getElementById('ins-cards').innerHTML=filteredIns().map((i,idx)=>{const st=s(i);const badge=st.type==='expired'?`<span class="badge badge-red">🔴 Expired</span>`:st.type==='warning'?`<span class="badge badge-amber">🟡 Due Soon</span>`:`<span class="badge badge-green">🟢 Active</span>`;return `<div class="m-card" style="animation-delay:${Math.min(idx,10)*0.02}s" onclick="showInsuranceModal('${i.id}')"><div class="flex-between gap-8"><div class="m-card-title">${i.vehicle_name||'-'}</div><span class="badge badge-amber">${i.plate_number||'-'}</span></div><div class="m-card-row" style="margin-top:6px;">${i.department?`<span class="badge badge-blue">${i.department}</span>`:''}<span>🛡 ${i.insurance_month||''}</span>${badge}</div><div style="font-size:11px;color:var(--text2);margin-top:4px">Reg: ${fmtDate(i.registration_date)}${i.insurance_date?` · ${i.insurance_date}`:''}</div></div>`;}).join('');
     }
+
+    function showInsuranceModal(id) {
+      const i = S.insurance.find(x => x.id === id); if (!i) return;
+      const st = insStatus(i.registration_date);
+      const statusBadge = st.type==='expired'
+        ? `<span class="badge badge-red">🔴 Expired ${st.days}d ago</span>`
+        : st.type==='warning'
+        ? `<span class="badge badge-amber">🟡 Due in ${st.days === 0 ? 'Today' : st.days+'d'}</span>`
+        : `<span class="badge badge-green">🟢 Active — ${st.days}d left</span>`;
+      document.getElementById('imod-title').textContent = i.vehicle_name || 'Insurance Record';
+      document.getElementById('imod-body').innerHTML = `
+        <div class="v-hero">
+          <div class="v-hero-icon">📋</div>
+          <div class="v-hero-name">${i.vehicle_name||'-'}</div>
+          <div class="v-hero-badges"><span class="badge badge-amber">${i.plate_number||'No Plate'}</span>${i.department?`<span class="badge badge-blue">${i.department}</span>`:''} ${statusBadge}</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">Registration Details</div>
+          ${dr('Item No', i.item_no)}
+          ${dr('MV File No', i.mv_file_no, 'mono')}
+          ${dr('Insurance Month', i.insurance_month)}
+          ${dr('Insurance Date', i.insurance_date)}
+          ${dr('Registration Month', i.registration_month)}
+          ${dr('Registration Date', fmtDate(i.registration_date))}
+          ${dr('Remarks', i.remarks)}
+        </div>
+        <div class="form-actions" style="padding-top:12px;border-top:1px solid var(--border);margin-top:4px;">
+          <button class="btn btn-danger" onclick="confirmDelete('insurance','${id}','modal-insurance')">🗑 Delete</button>
+          <button class="btn btn-default" onclick="editRecord('insurance','${id}')">✏️ Edit</button>
+        </div>`;
+      openModal('modal-insurance');
+    }
+    window.showInsuranceModal = showInsuranceModal;
 
     // ══ ADD / EDIT ══
     function openAddModal(){
@@ -783,7 +836,7 @@ const firebaseConfig = {
 
     function editRecord(col, id){
       S.editId=id; S.editCol=col;
-      closeModal('modal-vehicle'); closeModal('modal-history');
+      closeModal('modal-vehicle'); closeModal('modal-history'); closeModal('modal-insurance');
       const rec = col==='vehicles'?S.vehicles.find(x=>x.id===id):col==='history'?S.history.find(x=>x.id===id):S.insurance.find(x=>x.id===id);
       document.getElementById('form-title').textContent=col==='vehicles'?'Edit Vehicle':col==='history'?'Edit Maintenance Record':'Edit Insurance Record';
       document.getElementById('form-body').innerHTML=col==='vehicles'?vForm(rec):col==='history'?hForm(rec):iForm(rec);
