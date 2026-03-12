@@ -203,17 +203,7 @@ tbody td{padding:12px 14px;vertical-align:middle;}
 .fab{display:none;position:fixed;right:18px;bottom:calc(64px + 14px + var(--safe-bot));width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;color:#000;font-size:24px;box-shadow:0 4px 18px rgba(240,165,0,.4);align-items:center;justify-content:center;z-index:50;transition:transform .15s;}
 .fab:active{transform:scale(.9);}
 
-/* ── CONFIG SCREEN ── */
-#config-screen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
-.config-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;max-width:500px;width:100%;}
-.config-title{font-family:var(--font-head);font-size:28px;font-weight:700;color:var(--accent);margin-bottom:6px;}
-.config-sub{color:var(--text2);font-size:13px;margin-bottom:24px;}
-.config-steps{counter-reset:step;}
-.config-step{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start;}
-.config-step-num{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#000;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
-.config-step-text{font-size:13px;color:var(--text2);line-height:1.6;}
-.config-step-text strong{color:var(--text);}
-.config-input-row{display:flex;gap:8px;margin-top:20px;}
+
 
 /* ── RESPONSIVE ── */
 @media(max-width:1024px){.stats-grid{grid-template-columns:repeat(2,1fr);}.dash-grid{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr 1fr;}}
@@ -245,35 +235,8 @@ tbody td{padding:12px 14px;vertical-align:middle;}
 </head>
 <body>
 
-<!-- ══ CONFIG SCREEN (shown before Firebase is set up) ══ -->
-<div id="config-screen">
-  <div class="config-box">
-    <div class="config-title">⚙ VMS Setup</div>
-    <div class="config-sub">Enter your Firebase project credentials to connect the database.</div>
-    <div class="config-steps">
-      <div class="config-step"><div class="config-step-num">1</div><div class="config-step-text">Go to <strong>console.firebase.google.com</strong> → Your project → Project Settings</div></div>
-      <div class="config-step"><div class="config-step-num">2</div><div class="config-step-text">Under <strong>"Your apps"</strong> → Web app → copy the <strong>firebaseConfig</strong> values</div></div>
-      <div class="config-step"><div class="config-step-num">3</div><div class="config-step-text">Paste your <strong>API Key</strong> and <strong>Project ID</strong> below and click Connect</div></div>
-    </div>
-    <div class="form-group" style="margin-bottom:12px;">
-      <label class="form-label">Firebase API Key</label>
-      <input class="form-input" id="cfg-apikey" placeholder="AIzaSy...">
-    </div>
-    <div class="form-group" style="margin-bottom:12px;">
-      <label class="form-label">Firebase Project ID</label>
-      <input class="form-input" id="cfg-projectid" placeholder="your-project-id">
-    </div>
-    <div class="form-group" style="margin-bottom:20px;">
-      <label class="form-label">App ID</label>
-      <input class="form-input" id="cfg-appid" placeholder="1:123456789:web:abc123">
-    </div>
-    <button class="btn btn-primary" style="width:100%;" onclick="saveConfig()">🔌 Connect to Firebase</button>
-    <div id="cfg-error" style="color:var(--red);font-size:12px;margin-top:10px;display:none;"></div>
-  </div>
-</div>
-
 <!-- ══ MAIN APP ══ -->
-<div id="shell" style="display:none;">
+<div id="shell">
   <aside id="sidebar">
     <div class="sidebar-brand">
       <div class="brand-logo">
@@ -352,38 +315,23 @@ tbody td{padding:12px 14px;vertical-align:middle;}
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, where } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-// ══ CONFIG ══════════════════════════════════════════
-const CFG_KEY = 'vms_firebase_config';
+// ══════════════════════════════════════════════════
+//  🔧 FILL IN YOUR FIREBASE CREDENTIALS HERE
+//  Get these from: console.firebase.google.com
+//  → Your Project → Project Settings → Your Apps → Web
+// ══════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey:      "AIzaSyCmoO3iEpR1R4GzHK2Z21YfCVV9_VRoMJo",
+  authDomain:  "vehicle-maintenance-syst-4fb2e.firebaseapp.com",
+  projectId:   "vehicle-maintenance-syst-4fb2e",
+  appId:       "1:513108103014:web:7ade19f5a6e6bb3e7f42a7",
+};
+// ══════════════════════════════════════════════════
 
-function saveConfig() {
-  const apiKey    = document.getElementById('cfg-apikey').value.trim();
-  const projectId = document.getElementById('cfg-projectid').value.trim();
-  const appId     = document.getElementById('cfg-appid').value.trim();
-  if (!apiKey || !projectId || !appId) {
-    showCfgError('Please fill in all fields.');
-    return;
-  }
-  localStorage.setItem(CFG_KEY, JSON.stringify({ apiKey, projectId, appId }));
-  initApp({ apiKey, projectId, appId });
-}
-window.saveConfig = saveConfig;
-
-function showCfgError(msg) {
-  const el = document.getElementById('cfg-error');
-  el.textContent = msg; el.style.display = 'block';
-}
-
-function initApp(cfg) {
+(function initApp() {
   try {
-    const firebaseConfig = {
-      apiKey: cfg.apiKey,
-      authDomain: `${cfg.projectId}.firebaseapp.com`,
-      projectId: cfg.projectId,
-      storageBucket: `${cfg.storageBucket || cfg.projectId+'.appspot.com'}`,
-      appId: cfg.appId,
-    };
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
@@ -694,9 +642,9 @@ function initApp(cfg) {
     // ══ INIT ══
     loadDashboard();
   } catch(e) {
-    showCfgError('Connection failed: '+e.message+'. Please check your credentials.');
+    document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0d1117;color:#f85149;font-family:sans-serif;text-align:center;padding:20px;"><div><div style="font-size:48px;margin-bottom:16px">⚠️</div><div style="font-size:18px;margin-bottom:8px;">Firebase Connection Failed</div><div style="font-size:13px;color:#8b949e;">Check that your credentials in index.html are correct.<br>${e.message}</div></div></div>`;
   }
-}
+})();
 
 // ══ MODALS ══
 function openModal(id){document.getElementById(id).classList.add('open');}
@@ -714,10 +662,6 @@ function eh(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 let toastTimer;
 function toast(msg,type='success'){const el=document.getElementById('toast');el.textContent=msg;el.className=`toast show ${type}`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3000);}
 window.fmtDate=fmtDate;
-
-// ══ AUTO-LOAD SAVED CONFIG ══
-const saved = localStorage.getItem('vms_firebase_config');
-if(saved){try{initApp(JSON.parse(saved));}catch(e){localStorage.removeItem('vms_firebase_config');}}
 </script>
 </body>
 </html>
