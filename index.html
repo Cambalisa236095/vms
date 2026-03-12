@@ -596,7 +596,7 @@ const firebaseConfig = {
 
       // ── Insurance status categorization ──
       const now = new Date(); now.setHours(0,0,0,0);
-      const insWith = ins.map(i => ({ ...i, _status: insStatus(i.insurance_date) }));
+      const insWith = ins.map(i => ({ ...i, _status: insStatus(i.registration_date) }));
       const expired  = insWith.filter(i => i._status.type === 'expired').sort((a,b) => b._status.days - a._status.days);
       const warning  = insWith.filter(i => i._status.type === 'warning').sort((a,b) => a._status.days - b._status.days);
       const upcoming = insWith.filter(i => i._status.type === 'ok').sort((a,b) => a._status.days - b._status.days).slice(0,6);
@@ -617,7 +617,7 @@ const firebaseConfig = {
           <span class="ins-alert-icon">${icon}</span>
           <div class="ins-alert-info">
             <div class="ins-alert-name">${i.vehicle_name||'-'} <span style="opacity:.7;font-weight:400;font-size:11px">${i.plate_number||''}</span></div>
-            <div class="ins-alert-meta">${i.department||''} · Insurance: ${i.insurance_date||'-'}</div>
+            <div class="ins-alert-meta">${i.insurance_date||i.insurance_month||''} · Expires: ${fmtDate(i.registration_date)}</div>
           </div>
           <div class="ins-alert-days">${daysLabel}</div>
         </div>`;
@@ -628,7 +628,7 @@ const firebaseConfig = {
           <span class="ins-alert-icon">🟢</span>
           <div class="ins-alert-info">
             <div class="ins-alert-name">${i.vehicle_name||'-'} <span style="opacity:.7;font-weight:400;font-size:11px">${i.plate_number||''}</span></div>
-            <div class="ins-alert-meta">${i.department||''} · Insurance: ${i.insurance_date||'-'}</div>
+            <div class="ins-alert-meta">${i.insurance_date||i.insurance_month||''} · Expires: ${fmtDate(i.registration_date)}</div>
           </div>
           <div class="ins-alert-days">${i._status.days}d left</div>
         </div>`;
@@ -801,19 +801,19 @@ const firebaseConfig = {
     function renderInsTable(){
       const list=filteredIns(); const el=document.getElementById('ins-table-area');
       if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>No records found</div>';return;}
-      const s=i=>insStatus(i.insurance_date);
+      const s=i=>insStatus(i.registration_date);
       el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>#</th><th>Vehicle</th><th class="hide-mobile">Dept</th><th>Plate</th><th class="hide-mobile">Insurance Month</th><th class="hide-mobile">Reg Date</th><th>Status</th></tr></thead><tbody>
         ${list.map(i=>{const st=s(i);const badge=st.type==='expired'?`<span class="badge badge-red">Expired</span>`:st.type==='warning'?`<span class="badge badge-amber">Due Soon</span>`:`<span class="badge badge-green">Active</span>`;return `<tr onclick="showInsuranceModal('${i.id}')"><td class="td-muted">${i.item_no||'-'}</td><td class="td-name">${i.vehicle_name||'-'}</td><td class="hide-mobile">${i.department?`<span class="badge badge-blue">${i.department}</span>`:'-'}</td><td class="td-mono">${i.plate_number||'-'}</td><td class="hide-mobile">${i.insurance_month||'-'}</td><td class="hide-mobile td-muted">${fmtDate(i.registration_date)}</td><td>${badge}</td></tr>`;}).join('')}
       </tbody></table></div>`;
     }
     function renderInsCards(){
-      const s=i=>insStatus(i.insurance_date);
+      const s=i=>insStatus(i.registration_date);
       document.getElementById('ins-cards').innerHTML=filteredIns().map((i,idx)=>{const st=s(i);const badge=st.type==='expired'?`<span class="badge badge-red">🔴 Expired</span>`:st.type==='warning'?`<span class="badge badge-amber">🟡 Due Soon</span>`:`<span class="badge badge-green">🟢 Active</span>`;return `<div class="m-card" style="animation-delay:${Math.min(idx,10)*0.02}s" onclick="showInsuranceModal('${i.id}')"><div class="flex-between gap-8"><div class="m-card-title">${i.vehicle_name||'-'}</div><span class="badge badge-amber">${i.plate_number||'-'}</span></div><div class="m-card-row" style="margin-top:6px;">${i.department?`<span class="badge badge-blue">${i.department}</span>`:''}<span>🛡 ${i.insurance_month||''}</span>${badge}</div><div style="font-size:11px;color:var(--text2);margin-top:4px">Reg: ${fmtDate(i.registration_date)}${i.insurance_date?` · ${i.insurance_date}`:''}</div></div>`;}).join('');
     }
 
     function showInsuranceModal(id) {
       const i = S.insurance.find(x => x.id === id); if (!i) return;
-      const st = insStatus(i.insurance_date);
+      const st = insStatus(i.registration_date);
       const statusBadge = st.type==='expired'
         ? `<span class="badge badge-red">🔴 Expired ${st.days}d ago</span>`
         : st.type==='warning'
